@@ -125,7 +125,7 @@ function sanitizeMime(val?: string): string | undefined {
 function generateMPD(dashData: DashData, baseUrl: string): string {
   const duration = dashData.duration || Math.floor((dashData.timelength || 0) / 1000);
   const minBufferTime = dashData.minBufferTime || 1;
-  console.log('DASH data:', dashData)
+  
 
   const root = create({ version: '1.0', encoding: 'UTF-8' }).ele('MPD', {
     xmlns: 'urn:mpeg:dash:schema:mpd:2011',
@@ -147,6 +147,8 @@ function generateMPD(dashData: DashData, baseUrl: string): string {
   let videoStreams = dashData.video || [];
   // use sanitized codec when checking preferred
   const preferredVideo = videoStreams.find((v) => sanitizeCodec(v.codecs) === 'avc1.64001F');
+  const importVideos = videoStreams.filter((v) => sanitizeCodec(v.codecs)?.startsWith('avc1.64'));
+  console.log("所有视频流", importVideos)
   if (preferredVideo) videoStreams = [preferredVideo];
 
   videoStreams.forEach((video) => {
@@ -230,6 +232,7 @@ async function getDashInfo(bvid: string, sessdata?: string, cid?: number): Promi
     'User-Agent':
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     Referer: 'https://www.bilibili.com',
+    Cookie: sessdata ? `SESSDATA=${sessdata}` : '',
   };
 
   let paramsCid = cid;
@@ -247,7 +250,6 @@ async function getDashInfo(bvid: string, sessdata?: string, cid?: number): Promi
 
   }
 
-  console.log('Fetching DASH info for sessdata:', sessdata);
   const { img_key, sub_key } = await getWbiKeys(sessdata);
 
   let params: EncWbiParams = {
@@ -268,7 +270,6 @@ async function getDashInfo(bvid: string, sessdata?: string, cid?: number): Promi
     timeout: 5000,
   });
 
-  console.log("接口获取的dash数据:", playRes)
 
   const dash = playRes?.data?.dash ?? playRes?.data?.data?.dash;
   if (!dash || !dash.video || dash.video.length === 0 || !dash.audio || dash.audio.length === 0) {
@@ -297,7 +298,7 @@ async function getDashInfo(bvid: string, sessdata?: string, cid?: number): Promi
  */
 @Tags('B站视频代理')
 @Route('proxy/bilibili')
-export class BilibiliVideoController extends BaseController {
+export class BilibiliVideoTestController extends BaseController {
   /**
    * 生成DASH格式视频清单(MPD)
    *
@@ -306,7 +307,7 @@ export class BilibiliVideoController extends BaseController {
    * @param req Request object
    * @param res Response object
    */
-  @Get('video-manifest')
+  @Get('video-manifest-test')
   public async getVideoManifest(
     @Request() req: ExpressRequest,
     @Query() bvid: string,
@@ -341,7 +342,7 @@ export class BilibiliVideoController extends BaseController {
         return "";
       }
 
-      console.log("cookieHeader:", req.headers)
+      
 
       // 获取 cookie 中的 SESSDATA
       const cookieHeader = typeof req?.headers?.cookie === 'string' ? req.headers.cookie : '';
@@ -353,6 +354,7 @@ export class BilibiliVideoController extends BaseController {
 
       return this.ok({
         xml: mpdXML,
+        dashInfo,
         pages: dashInfo.pages,
       });
     } catch (err) {
