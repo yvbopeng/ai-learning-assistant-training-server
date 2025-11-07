@@ -22,11 +22,24 @@ const PORT = process.env.PORT || 3000;
 
 
 // 中间件配置
-app.use(helmet()); // 安全头部
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "blob:"],  // 添加blob:允许blob URL连接
+      mediaSrc: ["'self'", "blob:"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      // TODO 这个代码会导致隐私泄漏，只在开发或本地环境使用，不要用在远程生产环境
+      "upgrade-insecure-requests": null,
+    }
+  }
+})); // 安全头部
 app.use(cors());   // 跨域支持
 app.use(morgan('combined')); // 请求日志
 app.use(express.json({ limit: '10mb' })); // JSON解析
 app.use(express.urlencoded({ extended: true })); // URL编码解析
+app.use(express.static('public'))
 
 // 注册 tsoa 生成的路由
 RegisterRoutes(app);
@@ -65,6 +78,7 @@ const startServer = async (): Promise<void> => {
       logger.info(`📊 环境: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`🔗 健康检查: http://localhost:${PORT}/health`);
       logger.info(`📚 API接口文档: http://localhost:${PORT}/docs`);
+      logger.info(`📚 静态文件: http://localhost:${PORT}/`);
     });
   } catch (error) {
     logger.error('❌ 服务器启动失败:', error);

@@ -6,66 +6,43 @@ import { createSrtTools } from "../tool/srt_tools";
 import { createGetOutlineTool } from "../tool/simple_read_file_tool";
 import { SystemMessage } from "@langchain/core/messages";
 import ReactAgent from "../agent/react_agent_base";
-import { PostgreSQLPersistentStorage, PostgreSQLConfig } from "../storage/persistent_storage";
+import { PostgreSQLPersistentStorage } from "../storage/persistent_storage";
 
 
 type CourseAgentOptions = {
-    /** Optional override for the chat model instance. */
     llm?: ChatOpenAI;
-    /** Optional thread identifier used for checkpointing. */
     threadId?: string;
-    /** Absolute path to the course outline file used for reference. */
     courseOutline: string;
-    /** Required absolute path to the SRT transcript for tool binding. */
     srtPath: string;
-    /** System prompt used to prime the agent's planner. */
     plannerSystemPrompt: string;
-    /** Optional PostgreSQL configuration for persistent storage. If not provided, uses MemorySaver. */
-    postgresConfig?: PostgreSQLConfig;
-    /** Optional PostgreSQL storage instance. If provided, postgresConfig will be ignored. */
     postgresStorage?: PostgreSQLPersistentStorage;
-    /** Enable automatic database connection and setup. Defaults to true if postgres config is provided. */
     enablePostgresPersistence?: boolean;
 };
 
 const DEFAULT_THREAD_ID = "course-agent-thread";
 
-/**
- * 创建默认的课程代理 PostgreSQL 配置
- */
-export function createDefaultCoursePostgresConfig(): PostgreSQLConfig {
-    return {
-        host: process.env.POSTGRES_HOST || "localhost",
-        port: parseInt(process.env.POSTGRES_PORT || "5432"),
-        database: process.env.POSTGRES_DB || "ai_agent_chat",
-        user: process.env.POSTGRES_USER || "postgres", 
-        password: process.env.POSTGRES_PASSWORD || "postgres",
-        ssl: process.env.POSTGRES_SSL === "true",
-    };
-}
+
 
 /**
  * 创建带有 PostgreSQL 持久化的课程代理（简化版）
  */
-export async function createPersistentCourseAgent(
+export function createPersistentCourseAgent(
     srtPath: string,
     courseOutline: string, 
     plannerSystemPrompt: string,
     options?: {
         llm?: ChatOpenAI;
         threadId?: string;
-        postgresConfig?: PostgreSQLConfig;
+        postgresStorage?: PostgreSQLPersistentStorage;
     }
 ): Promise<ReactAgent> {
-    const postgresConfig = options?.postgresConfig ?? createDefaultCoursePostgresConfig();
-    
     return createCourseAgent({
         srtPath,
         courseOutline,
         plannerSystemPrompt,
         llm: options?.llm,
         threadId: options?.threadId,
-        postgresConfig,
+        postgresStorage: options?.postgresStorage,
         enablePostgresPersistence: true,
     });
 }
@@ -93,7 +70,7 @@ export function createMemoryCourseAgent(
 }
 
 async function createCourseAgent(options: CourseAgentOptions): Promise<ReactAgent> {
-    const { srtPath, courseOutline, postgresConfig, postgresStorage, enablePostgresPersistence = true } = options;
+    const { srtPath, courseOutline, postgresStorage, enablePostgresPersistence = true } = options;
     
     if (!srtPath || !courseOutline) {
         throw new Error("srtPath or courseOutline must be provided to createCourseAgent.");
@@ -103,23 +80,15 @@ async function createCourseAgent(options: CourseAgentOptions): Promise<ReactAgen
     const threadId = options.threadId ?? DEFAULT_THREAD_ID;
     
     // 设置持久化存储
+    let checkpointer: MemorySaver | PostgreSQLPersistentStorage;
     let storage: PostgreSQLPersistentStorage | undefined;
-    let checkpointer;
-
-    if (postgresStorage) {
-        // 使用提供的 PostgreSQL 存储实例
+    if (postgresStorage && enablePostgresPersistence) {
         storage = postgresStorage;
-        if (enablePostgresPersistence && !storage.isConnected()) {
+        if (!storage.isConnected()) {
             await storage.connect();
         }
-        checkpointer = storage.getSaver();
-    } else if (postgresConfig && enablePostgresPersistence) {
-        // 创建新的 PostgreSQL 存储实例
-        storage = new PostgreSQLPersistentStorage(postgresConfig);
-        await storage.connect();
-        checkpointer = storage.getSaver();
+        checkpointer = storage;
     } else {
-        // 使用内存存储
         checkpointer = new MemorySaver();
         console.log("🧠 Course Agent 使用内存存储（会话将不会持久化）");
     }
@@ -134,8 +103,7 @@ async function createCourseAgent(options: CourseAgentOptions): Promise<ReactAgen
         llm,
         prompt,
         tools,
-        checkpointSaver: checkpointer,
-        checkpointer,
+        // checkpointSaver: checkpointer,
         defaultThreadId: threadId,
         postgresStorage: storage,
     });

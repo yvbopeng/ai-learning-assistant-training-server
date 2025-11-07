@@ -18,6 +18,8 @@ import { Test } from '../models/test';
 import { TestResult } from '../models/testResult';
 import { ExerciseResult } from '../models/exerciseResult';
 import { TestExercise } from '../models/testExercise';
+import { UserSessionMapping } from '../models/UserSessionMapping';
+import { ConversationAnalytics } from '../models/ConversationAnalytics';
 import dotenv from 'dotenv';
 import { Client } from 'pg';
 dotenv.config();
@@ -42,7 +44,8 @@ export const AppDataSource = new DataSource({
   entities: [
     User, Title, LearningRecord, DailySummary, CourseSchedule, AiInteraction,
     AiPersona, Course, Chapter, Section, LeadingQuestion,
-    Exercise, ExerciseOption, Test, TestResult, ExerciseResult, TestExercise
+    Exercise, ExerciseOption, Test, TestResult, ExerciseResult, TestExercise,
+    UserSessionMapping, ConversationAnalytics
   ], // 创建model后要在此处添加
   migrations: [],
   subscribers: [],

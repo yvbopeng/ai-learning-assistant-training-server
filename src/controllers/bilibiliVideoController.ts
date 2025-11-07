@@ -347,8 +347,8 @@ export class BilibiliVideoController extends BaseController {
       const cookieHeader = typeof req?.headers?.cookie === 'string' ? req.headers.cookie : '';
       const sessionDataCookie = getCookieValue(cookieHeader, 'SESSDATA');
 
-      const dashInfo = await getDashInfo(bvid, sessionDataCookie, cid);
-      const mpdXML = generateMPD(dashInfo.dash, baseUrl);
+      const dashInfo = await getDashInfo(bvid, sessionDataCookie);
+      const mpdXML = generateMPD(dashInfo.dash, baseUrl + "/api");
 
 
       return this.ok({

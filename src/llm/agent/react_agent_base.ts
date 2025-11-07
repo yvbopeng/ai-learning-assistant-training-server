@@ -73,13 +73,8 @@ export class ReactAgent {
       postgresStorage,
     } = options;
 
-    // 如果提供了 PostgreSQL 存储，优先使用它的 saver
+    // 优先使用 checkpointSaver/checkpointer，否则默认 MemorySaver
     let resolvedSaver = checkpointSaver ?? checkpointer;
-    
-    if (!resolvedSaver && postgresStorage?.isConnected()) {
-      resolvedSaver = postgresStorage.getSaver();
-    }
-    
     if (!resolvedSaver) {
       resolvedSaver = new MemorySaver();
     }
@@ -89,7 +84,6 @@ export class ReactAgent {
       tools: tools ?? [],
       prompt,
       checkpointSaver: resolvedSaver,
-      checkpointer: resolvedSaver,
       store,
     });
 
@@ -233,8 +227,9 @@ export class ReactAgent {
     if (!this.postgresStorage?.isConnected()) {
       throw new Error("PostgreSQL storage not available");
     }
-    
-    return this.postgresStorage.getConversationAnalytics(threadId);
+    // 这里 threadId 既是 sessionId，也是 userId，需根据业务传递正确 userId
+    // 这里假设 userId = threadId，实际应传入真实 userId
+    return this.postgresStorage.getConversationAnalytics(threadId, threadId);
   }
 
   /**
@@ -266,13 +261,13 @@ export class ReactAgent {
     const userMessages = messages.filter(msg => msg._getType() === "human").length;
     const aiMessages = messages.filter(msg => msg._getType() === "ai").length;
     const totalMessages = messages.length;
-
+    // 这里假设 userId = threadId，conversationSummary/analyticsData 可自定义
     try {
       await this.postgresStorage.updateConversationAnalytics(
-        threadId,
-        totalMessages,
-        userMessages,
-        aiMessages
+        threadId, // sessionId
+        threadId, // userId（实际应传真实 userId）
+        '', // conversationSummary
+        { totalMessages, userMessages, aiMessages } // analyticsData
       );
     } catch (error) {
       console.warn("Failed to update conversation analytics:", error);
