@@ -58,7 +58,7 @@ export class BilibiliProxyLoginController extends BaseController {
       body.append('token', params.token);
       body.append('seccode', params.seccode);
       body.append('challenge', params.challenge);
-// headers['Host'] = hostHeader;
+      
       const res = await ofetch(urlString, ({
         method: "POST",
         headers: {
