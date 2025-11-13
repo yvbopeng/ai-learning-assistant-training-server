@@ -58,23 +58,26 @@ export class BilibiliProxyLoginController extends BaseController {
       body.append('token', params.token);
       body.append('seccode', params.seccode);
       body.append('challenge', params.challenge);
-
+// headers['Host'] = hostHeader;
       const res = await ofetch(urlString, ({
         method: "POST",
         headers: {
           'accept': '*/*',
           'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          "Accept-Encoding": "gzip, deflate, br",
+          "Connection": "keep-alive",
           'content-type': 'application/x-www-form-urlencoded',
           'origin': 'https://www.bilibili.com',
+          "Host": "passport.bilibili.com",
           'priority': 'u=1, i',
           'referer': 'https://www.bilibili.com/',
-          'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+          'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
           'sec-ch-ua-mobile': '?0',
           'sec-ch-ua-platform': '"Windows"',
           'sec-fetch-dest': 'empty',
           'sec-fetch-mode': 'cors',
           'sec-fetch-site': 'same-site',
-          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
         },
         body
       } as any));
