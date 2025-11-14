@@ -53,7 +53,6 @@ export interface DashStream {
   };
   start_with_sap?: number;
   size: number;
-  // optional field commonly present for audio streams
   audioSamplingRate?: number;
 }
 
@@ -82,6 +81,22 @@ export interface XmlListItem {
   quality?: number;
   display_desc?: string;
   new_description?: string;
+  base_url?: string;
+  backup_url?: string[];
+  bandwidth?: number;
+  mime_type?: string;
+  codecs?: string;
+  width?: number;
+  height?: number;
+  frame_rate?: string;
+  sar?: string;
+  segment_base?: {
+    index_range: string;
+    initialization: string;
+  };
+  start_with_sap?: number;
+  size?: number;
+  audioSamplingRate?: number;
 }
 
 

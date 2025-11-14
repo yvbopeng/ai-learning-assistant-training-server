@@ -224,34 +224,36 @@ function generateMPD(dashData: DashData, baseUrl: string, bvid:string, videoInde
 
   return root.end({ prettyPrint: true });
 }
-function generateMPDList(dashData: DashData, baseUrl: string, bvid: string): XmlListItem[] {
-  let videoStreams = dashData.video || [];
-  const mpdList: XmlListItem[] = [];
+function generateFormatList(dashData: DashData): XmlListItem[] {
+  const videoStreams = dashData.video || [];
+  const formatList: XmlListItem[] = [];
   dashData.supportFormats.forEach(v => { 
-    mpdList.push({
+    formatList.push({
       id: v.quality,
       format: v.format,
       new_description: v.new_description,
       display_desc: v.display_desc,
       xml:""
+
     })
   });
 
-  videoStreams.forEach((v, index) => { 
+  videoStreams.forEach((v) => { 
     if(sanitizeCodec(v.codecs)?.startsWith('avc1.64')) {
-      if(mpdList.find(mpdI => mpdI.id === v.id)) {
-        mpdList.find(mpdI => mpdI.id === v.id)!.xml = generateMPD(dashData, baseUrl,bvid, index );
+      let findItem = formatList.find(mpdI => mpdI.id === v.id);
+      if(findItem) {
+        findItem = Object.assign(findItem, v);
       }else {
-        mpdList.push({
-          id: v.id,
-          xml: generateMPD(dashData, baseUrl,bvid, index)
+        formatList.push({
+          ...v,
+          xml:""
         })
 
       }
     }
   });
-  return mpdList;
 
+  return formatList;
 }
 
 /**
@@ -486,13 +488,13 @@ export class BilibiliVideoController extends BaseController {
 
       const dashInfo = await getDashInfo(bvid, sessionDataCookie, cid);
       const mpdXML = generateMPD(dashInfo.dash, baseUrl + "/api", bvid);
-      const mpdList = generateMPDList(dashInfo.dash, baseUrl + "/api", bvid)
+      const formatList = generateFormatList(dashInfo.dash)
       const unifiedMpd = generateUnifiedMPD(dashInfo.dash, baseUrl + "/api", bvid)
 
 
       return this.ok({
         xml: mpdXML,
-        mpdList,
+        formatList,
         unifiedMpd,
         pages: dashInfo.pages,
       });
